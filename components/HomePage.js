@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, TextInput } from "react-native";
 import Card from './Card';
 
 const initializeDeck = () => {
@@ -40,23 +40,27 @@ const HomePage = () => {
   const [dealerHand, setDealerHand] = useState([]);
   const [dealerTotal, setDealerTotal] = useState(0);
   const [message, setMessage] = useState('');
-  const [isGameActive, setIsGameActive] = useState(true);
+  const [isGameActive, setIsGameActive] = useState(false);
   const [isDealerTurn, setIsDealerTurn] = useState(false);
-
+  const [isBettingMode, setIsBettingMode] = useState(true);
+  const [money, setMoney] = useState(2000); // Player's money
+  const [betAmount, setBetAmount] = useState(0); // Current bet amount
 
   const resetGame = () => {
-    const newDeck = initializeDeck();
-    shuffleDeck(newDeck);
-    const playerCards = [newDeck.pop(), newDeck.pop()];
-    const dealerCards = [newDeck.pop(), newDeck.pop()];
-    setDeck(newDeck);
-    setPlayerHand(playerCards);
-    setPlayerTotal(calculateTotal(playerCards));
-    setDealerHand(dealerCards);
-    setDealerTotal(calculateTotal(dealerCards));
-    setMessage('');
-    setIsGameActive(true);
-    setIsDealerTurn(false);
+      const newDeck = initializeDeck();
+      shuffleDeck(newDeck);
+      const playerCards = [newDeck.pop(), newDeck.pop()];
+      const dealerCards = [newDeck.pop(), newDeck.pop()];
+      setDeck(newDeck);
+      setPlayerHand(playerCards);
+      setPlayerTotal(calculateTotal(playerCards));
+      setDealerHand(dealerCards);
+      setDealerTotal(calculateTotal(dealerCards));
+      setMessage('');
+      setIsGameActive(false);
+      setIsDealerTurn(false);
+      setIsBettingMode(true)
+      setBetAmount(0);
   };
 
   useEffect(() => {
@@ -69,9 +73,18 @@ const HomePage = () => {
       setIsGameActive(false);
       setTimeout(() => {
         resetGame();
+        if(money <= 0) {
+          setBetAmount(0);
+          setIsGameActive(false);
+          setIsBettingMode(false);
+          setIsDealerTurn(false);
+          setMessage('You\'re Bankrupt!');
+        }
       }, 2000)
+
     } else if (playerTotal === 21) {
       setMessage('BLACKJACK');
+      setMoney((betAmount * 2.5) + money);
       setIsGameActive(false);
       setTimeout(() => {
         resetGame();
@@ -93,6 +106,28 @@ const HomePage = () => {
     setIsGameActive(false);
     setIsDealerTurn(true);
   };
+
+  const handleBetChange = (value) => {
+    if(value != '') {
+      const bet = parseInt(value, 10);
+      if (!isNaN(bet) && bet >= 1 && bet <= money) {
+        setBetAmount(bet);
+      }
+    }
+  };
+
+  const handleBetSubmit = (value) => {
+    if(betAmount > 0 && betAmount <= money) {
+      setMoney(money - betAmount);
+      setIsBettingMode(false);
+      setIsGameActive(true);
+    } else {
+      setMessage('Invalid Bet Amount. Must be Between $1 and $' + money);
+      setTimeout(() => {
+        setMessage('');
+      }, 2000)
+    }
+  }
 
   useEffect(() => {
     if (isDealerTurn) {
@@ -116,6 +151,7 @@ const HomePage = () => {
   const determineWinner = () => {
     if (dealerTotal > 21 || playerTotal > dealerTotal) {
       setMessage('Player Wins');
+      setMoney((betAmount * 2) + money);
       setTimeout(() => {
         resetGame();
       }, 2000)
@@ -123,9 +159,17 @@ const HomePage = () => {
       setMessage('Dealer Wins');
       setTimeout(() => {
         resetGame();
+        if(money <= 0) {
+          setBetAmount(0);
+          setIsGameActive(false);
+          setIsBettingMode(false);
+          setIsDealerTurn(false);
+          setMessage('You\'re Bankrupt!');
+        }
       }, 2000)
     } else {
       setMessage('Tie');
+      setMoney(betAmount + money);
       setTimeout(() => {
         resetGame();
       }, 2000)
@@ -139,29 +183,52 @@ const HomePage = () => {
         {dealerHand.map((card, index) => (
           <Card
             key={index}
-            rank={isDealerTurn || index === 0 ? card.rank : ''}
-            suit={isDealerTurn || index === 0 ? card.suit : ''}
+            rank={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn) ? card.rank : ''}
+            suit={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn) ? card.suit : ''}
           />
         ))}
       </View>
       {/* Player's Hand */}
       <View style={styles.playerHandContainer}>
         {playerHand.map((card, index) => (
-          <Card key={index} rank={card.rank} suit={card.suit} />
+          <Card
+            key={index}
+            rank={ !isBettingMode && (isGameActive || isDealerTurn) ? card.rank : ''}
+            suit={ !isBettingMode && (isGameActive || isDealerTurn) ? card.suit : ''}
+          />
         ))}
       </View>
       {/* Buttons */}
-      {message && <Text style={styles.message}>{message}</Text>}
       <Pressable onPress={handleHit} style={[styles.hitButton, !isGameActive && styles.disabledButton]} disabled={!isGameActive}>
         <Text style={styles.buttonText}>Hit</Text>
       </Pressable>
       <Pressable onPress={handleStand} style={[styles.standButton, !isGameActive && styles.disabledButton]} disabled={!isGameActive}>
         <Text style={styles.buttonText}>Stand</Text>
       </Pressable>
+      <View style={styles.betContainer}>
+        <Text style={styles.moneyText}>Money: ${money}</Text>
+        <TextInput
+          style={[styles.betInput, !isBettingMode && styles.disabledBetInput]} // Apply disabled style to the input if not in betting mode
+          keyboardType="numeric"
+          placeholder="Enter Bet Amount"
+          onChangeText={handleBetChange}
+          value={betAmount || ''} // Ensure the input can be empty
+        />
+        <Pressable
+          onPress={handleBetSubmit}
+          style={[styles.betButton, !isBettingMode && styles.disabledBet]} // Apply disabled style to the button if not in betting mode
+          disabled={!isBettingMode} // Disable the button if not in betting mode
+        >
+          <Text style={styles.buttonText}>Place Bet</Text>
+        </Pressable>
+      </View>
 
       {/*Scores*/}
-      <Text style={styles.playerScore}>{playerTotal}</Text>
+      <Text style={styles.playerScore}>{!isBettingMode && (money > 0 || betAmount > 0)? playerTotal : '???'}</Text>
       <Text style={styles.dealerScore}>{isDealerTurn ? dealerTotal : '???'}</Text>
+
+      {/*Message*/}
+      {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
 };
@@ -188,7 +255,7 @@ const styles = StyleSheet.create({
   },
   hitButton: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 75,
     left: 20,
     padding: 15,
     borderWidth: 2,
@@ -202,7 +269,7 @@ const styles = StyleSheet.create({
   },
   standButton: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 75,
     right: 20,
     padding: 15,
     borderWidth: 2,
@@ -241,5 +308,33 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: 'blue',
+  },
+  betContainer: {
+    position: 'absolute',
+    bottom: 65,
+    alignItems: 'center',
+  },
+  moneyText: {
+    fontSize: 24,
+    marginBottom: 10,
+  },
+  betInput: {
+    width: 250,
+    height: 40,
+    borderColor: 'black',
+    borderWidth: 1,
+    marginBottom: 10,
+    textAlign: 'center',
+    fontSize: 18,
+  },
+  betButton: {
+    padding: 10,
+    backgroundColor: 'blue',
+    borderRadius: 8,
+  },
+  disabledBet: {
+    padding: 10,
+    backgroundColor: 'grey',
+    borderRadius: 8,
   },
 });
