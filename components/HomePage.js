@@ -132,19 +132,22 @@ const HomePage = () => {
   useEffect(() => {
     if (isDealerTurn) {
       const interval = setInterval(() => {
+        // Adjust dealer's total if it exceeds 21
         if (dealerTotal < 17) {
           const newDeck = [...deck];
           const drawnCard = newDeck.pop();
           const updatedHand = [...dealerHand, drawnCard];
+          const updatedTotal = calculateTotal(updatedHand); // Recalculate total
           setDeck(newDeck);
           setDealerHand(updatedHand);
-          setDealerTotal(calculateTotal(updatedHand));
-        } else {
+          setDealerTotal(updatedTotal);
+        }
+        if (calculateTotal(dealerHand) >= 17) {
           clearInterval(interval);
           determineWinner();
         }
       }, 1000);
-      return () => clearInterval(interval);
+      return () => clearInterval(interval); // Clean up interval on component unmount
     }
   }, [isDealerTurn, dealerTotal]);
 
