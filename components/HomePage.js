@@ -66,8 +66,7 @@ const HomePage = () => {
   const resetGame = () => {
     const newDeck = initializeDeck(); // Create a new deck
     shuffleDeck(newDeck); // Shuffle the deck
-    const drawnCard = newDeck.pop();
-    const playerCards = [drawnCard, drawnCard]; // Deal two cards to the player
+    const playerCards = [newDeck.pop();, newDeck.pop();]; // Deal two cards to the player
     const dealerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the dealer
     setDeck(newDeck);
     setPlayerHand(playerCards);
@@ -285,6 +284,7 @@ const HomePage = () => {
         results.push('Main hand: Tie');
         setMoney(betAmount + money);
       }
+      // Evaluate the split hand
       if (splitTotal === 21) {
         results.push('Split hand: BlackJack');
       } else if (splitTotal > 21) {
@@ -365,11 +365,11 @@ const HomePage = () => {
       <View style={styles.betContainer}>
         <Text style={styles.moneyText}>Money: ${money}</Text>
         <TextInput
-          style={[styles.betInput, !isBettingMode && styles.disabledBetInput]} // Apply disabled style to the input if not in betting mode
+          style={[styles.betInput, !isBettingMode]}
           keyboardType="numeric"
           placeholder="Enter Bet Amount"
           onChangeText={handleBetChange}
-          value={betAmount || ''} // Ensure the input can be empty
+          value={betAmount || ''}
         />
         <Pressable
           onPress={handleBetSubmit}
