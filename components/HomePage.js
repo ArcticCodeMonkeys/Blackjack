@@ -60,36 +60,40 @@ const HomePage = () => {
   const [splitBet, setSplitBet] = useState(0); // Bet amount for the second hand
   const [showSplitOptions, setShowSplitOptions] = useState(false); // Show Yes/No buttons for split option
   const [disableButtons, setDisableButtons] = useState(false);
-  const [allowedBusts, setAllowedBusts] = useState(1);
-
+  const [askPlayAgain, setAskPlayAgain] = useState(false);
   // Function to reset game for a new round
-  const resetGame = () => {
-    const newDeck = initializeDeck(); // Create a new deck
-    shuffleDeck(newDeck); // Shuffle the deck
-    const playerCards = [drawCard(), drawCard()]; // Deal two cards to the player
-    const dealerCards = [drawCard(), drawCard()]; // Deal two cards to the dealer
-    setDeck(newDeck);
-    setPlayerHand(playerCards);
-    setPlayerTotal(calculateTotal(playerCards));
-    setDealerHand(dealerCards);
-    setDealerTotal(calculateTotal(dealerCards));
-    setSplitHand([]);
-    setSplitTotal(0);
-    setIsSplit(false);
-    setCurrentHand(1);
-    setSplitBet(0);
-    setMessage(''); // Clear any previous messages
-    setIsGameActive(false);
-    setIsDealerTurn(false);
-    setIsBettingMode(true); // Reset to betting mode
-    setBetAmount(0); // Reset the bet amount
-    setDisableButtons(false);
-    setAllowedBusts(1);
+  const resetGame = (ask) => {
+    if(!ask) {
+      const newDeck = initializeDeck(); // Create a new deck
+      shuffleDeck(newDeck); // Shuffle the deck
+      const playerCards = [drawCard(), drawCard()]; // Deal two cards to the player
+      const dealerCards = [drawCard(), drawCard()]; // Deal two cards to the dealer
+      setDeck(newDeck);
+      setPlayerHand(playerCards);
+      setPlayerTotal(calculateTotal(playerCards));
+      setDealerHand(dealerCards);
+      setDealerTotal(calculateTotal(dealerCards));
+      setSplitHand([]);
+      setSplitTotal(0);
+      setIsSplit(false);
+      setCurrentHand(1);
+      setSplitBet(0);
+      setMessage(''); // Clear any previous messages
+      setIsGameActive(false);
+      setIsDealerTurn(false);
+      setIsBettingMode(true); // Reset to betting mode
+      setBetAmount(0); // Reset the bet amount
+      setDisableButtons(false);
+      setAskPlayAgain(false);
+    } else {
+      setDisableButtons(true);
+      setAskPlayAgain(true);
+    }
   };
 
   // Initialize the game state
   useEffect(() => {
-    resetGame();
+    resetGame(false);
   }, []);
 
   // React to changes in the player's total
@@ -119,13 +123,13 @@ const HomePage = () => {
           setIsGameActive(true); // Resume game for second hand
           setDisableButtons(false);
         } else if(!isSplit) {
-          resetGame();
+          resetGame(true);
         } else {
           // Otherwise, end turn
           setIsDealerTurn(true);
           setMessage("Dealer's turn...");
         }
-      }, 2500
+      }, 1000
 
 );
     }
@@ -201,7 +205,6 @@ const HomePage = () => {
       setSplitTotal(calculateTotal([secondCard, newCardForSecondHand]));
       setSplitBet(betAmount); // Duplicate the bet for the split hand
       setMoney(money - betAmount); // Deduct the split bet from the player's money
-      setAllowedBusts(2);
 
       // Update states
       setIsSplit(true);
@@ -313,8 +316,8 @@ const HomePage = () => {
     }
     setMessage(results.join('\n'));
     setTimeout(() => {
-      resetGame();
-    }, 2500
+      resetGame(true);
+    }, 1000
 
 );
   };
@@ -381,6 +384,10 @@ const HomePage = () => {
           </Pressable>
         </>
       )}
+
+      {askPlayAgain ? (<Pressable onPress={() => resetGame(false)} style={styles.playAgainButton}>
+        <Text style={styles.buttonText}>Play Again</Text>
+      </Pressable>) : (<View></View>)}
       {/* Bet Container */}
       <View style={styles.betContainer}>
         <Text style={styles.moneyText}>Money: ${money}</Text>
@@ -401,13 +408,18 @@ const HomePage = () => {
       </View>
       {/* Scores */}
       <Text style={styles.playerScore}>
+        Player Score:{' '}
         {!isBettingMode && (money > 0 || betAmount > 0)
           ? currentHand === 1
             ? playerTotal
             : splitTotal
           : <Text>???</Text>}
       </Text>
-      <Text style={styles.dealerScore}>{isDealerTurn ? dealerTotal : <Text>???</Text>}</Text>
+
+      <Text style={styles.dealerScore}>
+        Dealer Score:{' '}
+        {isDealerTurn ? dealerTotal : <Text>???</Text>}
+      </Text>
 
       {/* Message */}
       {message && <Text style={styles.message}>{message}</Text>}
@@ -496,7 +508,7 @@ const styles = StyleSheet.create({
   // Display Message
   message: {
     position: 'absolute',
-    top: 325,
+    top: 200,
     fontSize: 32,
     fontWeight: 'bold',
     color: 'blue',
@@ -561,5 +573,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'yellow',
+  },
+  playAgainButton: {
+    position: 'absolute',
+    top: 275,
+    width: 200,
+    height: 120,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'green',
   },
 });
