@@ -66,8 +66,8 @@ const HomePage = () => {
   const resetGame = () => {
     const newDeck = initializeDeck(); // Create a new deck
     shuffleDeck(newDeck); // Shuffle the deck
-    const playerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the player
-    const dealerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the dealer
+    const playerCards = [drawCard(), drawCard()]; // Deal two cards to the player
+    const dealerCards = [drawCard(), drawCard()]; // Deal two cards to the dealer
     setDeck(newDeck);
     setPlayerHand(playerCards);
     setPlayerTotal(calculateTotal(playerCards));
@@ -133,9 +133,7 @@ const HomePage = () => {
 
   // Handle "Hit" button logic
   const handleHit = () => {
-    const newDeck = [...deck];
-    const drawnCard = newDeck.pop();
-    setDeck(newDeck);
+    const drawnCard = drawCard();
 
     if (isSplit && currentHand === 2) {
       // Update the split hand
@@ -159,6 +157,7 @@ const HomePage = () => {
     } else {
       // End the player's turn and start the dealer's turn
       setIsDealerTurn(true);
+      setDisableButtons(true);
       setMessage("Dealer's turn...");
     }
   };
@@ -170,16 +169,30 @@ const HomePage = () => {
     }
   }, [playerHand, isBettingMode]);
 
+  const drawCard = () => {
+    if(deck.length === 0) {
+      let oldMessage = message;
+      setMessage('Deck Empty, Reshuffling...');
+      let newDeck = initializeDeck();
+      shuffleDeck(newDeck);
+      setDeck(newDeck);
+      setTimeout(() => {
+        setMessage(oldMessage);
+      }, 1500)
+      return newDeck.pop();
+    }
+    return deck.pop()
+  }
+
   const handleSplit = () => {
     if (playerHand.length === 2 && playerHand[0].rank === playerHand[1].rank) {
 
       const firstCard = playerHand[0];
       const secondCard = playerHand[1];
-      const newDeck = [...deck];
 
       // Deal a new card to each hand
-      const newCardForFirstHand = newDeck.pop();
-      const newCardForSecondHand = newDeck.pop();
+      const newCardForFirstHand = drawCard();
+      const newCardForSecondHand = drawCard();
 
       // Set up hands and bets
       setPlayerHand([firstCard, newCardForFirstHand]);
@@ -188,7 +201,6 @@ const HomePage = () => {
       setSplitTotal(calculateTotal([secondCard, newCardForSecondHand]));
       setSplitBet(betAmount); // Duplicate the bet for the split hand
       setMoney(money - betAmount); // Deduct the split bet from the player's money
-      setDeck(newDeck);
       setAllowedBusts(2);
 
       // Update states
@@ -238,11 +250,9 @@ const HomePage = () => {
     if (isDealerTurn) {
       const interval = setInterval(() => {
         if (dealerTotal < 17) {
-          const newDeck = [...deck];
-          const drawnCard = newDeck.pop(); // Dealer draws a card
+          const drawnCard = drawCard(); // Dealer draws a card
           const updatedHand = [...dealerHand, drawnCard];
           const updatedTotal = calculateTotal(updatedHand);
-          setDeck(newDeck);
           setDealerHand(updatedHand);
           setDealerTotal(updatedTotal);
         }
@@ -262,14 +272,14 @@ const HomePage = () => {
     // Evaluate the main hand
     if(!isSplit) {
       if (playerTotal > 21) {
-        results.push('Bust');
+        results.push('BUST');
       } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
-        results.push('Win');
+        results.push('You Win!');
         setMoney((betAmount * 2) + money);
       } else if (playerTotal < dealerTotal) {
-        results.push('Lose');
+        results.push('You Lose');
       } else {
-        results.push('Tie');
+        results.push('It\s a Tie!');
         setMoney(betAmount + money);
       }
     } else {
@@ -320,7 +330,6 @@ const HomePage = () => {
           />
         ))}
       </View>
-
       {/* Player's Hand */}
       <View style={styles.playerHandContainer}>
         {isSplit ? (
@@ -344,7 +353,6 @@ const HomePage = () => {
           ))
         )}
       </View>
-
       {/* Buttons */}
       {showSplitOptions ? (
         <>
@@ -373,7 +381,6 @@ const HomePage = () => {
           </Pressable>
         </>
       )}
-
       {/* Bet Container */}
       <View style={styles.betContainer}>
         <Text style={styles.moneyText}>Money: ${money}</Text>
@@ -392,7 +399,6 @@ const HomePage = () => {
           <Text style={styles.buttonText}>Place Bet</Text>
         </Pressable>
       </View>
-
       {/* Scores */}
       <Text style={styles.playerScore}>
         {!isBettingMode && (money > 0 || betAmount > 0)
