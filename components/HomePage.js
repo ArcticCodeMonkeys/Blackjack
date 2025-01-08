@@ -66,7 +66,7 @@ const HomePage = () => {
   const resetGame = () => {
     const newDeck = initializeDeck(); // Create a new deck
     shuffleDeck(newDeck); // Shuffle the deck
-    const playerCards = [newDeck.pop(), newDeck.pop();]; // Deal two cards to the player
+    const playerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the player
     const dealerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the dealer
     setDeck(newDeck);
     setPlayerHand(playerCards);
