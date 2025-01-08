@@ -53,23 +53,39 @@ const HomePage = () => {
   const [isBettingMode, setIsBettingMode] = useState(true); // Betting Round
   const [money, setMoney] = useState(2000); // Player's Balance
   const [betAmount, setBetAmount] = useState(0); // Current bet amount
+  const [isSplit, setIsSplit] = useState(false); // Track if the player has chosen to split
+  const [splitHand, setSplitHand] = useState([]); // The second hand after splitting
+  const [splitTotal, setSplitTotal] = useState(0); // Total value of the second hand
+  const [currentHand, setCurrentHand] = useState(1); // Track which hand the player is playing (1 or 2)
+  const [splitBet, setSplitBet] = useState(0); // Bet amount for the second hand
+  const [showSplitOptions, setShowSplitOptions] = useState(false); // Show Yes/No buttons for split option
+  const [disableButtons, setDisableButtons] = useState(false);
+  const [allowedBusts, setAllowedBusts] = useState(1);
 
   // Function to reset game for a new round
   const resetGame = () => {
     const newDeck = initializeDeck(); // Create a new deck
     shuffleDeck(newDeck); // Shuffle the deck
-    const playerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the player
+    const drawnCard = newDeck.pop();
+    const playerCards = [drawnCard, drawnCard]; // Deal two cards to the player
     const dealerCards = [newDeck.pop(), newDeck.pop()]; // Deal two cards to the dealer
     setDeck(newDeck);
     setPlayerHand(playerCards);
     setPlayerTotal(calculateTotal(playerCards));
     setDealerHand(dealerCards);
     setDealerTotal(calculateTotal(dealerCards));
+    setSplitHand([]);
+    setSplitTotal(0);
+    setIsSplit(false);
+    setCurrentHand(1);
+    setSplitBet(0);
     setMessage(''); // Clear any previous messages
     setIsGameActive(false);
     setIsDealerTurn(false);
     setIsBettingMode(true); // Reset to betting mode
     setBetAmount(0); // Reset the bet amount
+    setDisableButtons(false);
+    setAllowedBusts(1);
   };
 
   // Initialize the game state
@@ -79,45 +95,116 @@ const HomePage = () => {
 
   // React to changes in the player's total
   useEffect(() => {
-    if (playerTotal > 21) {
-      setMessage('BUST'); // Player loses if total exceeds 21
-      setIsGameActive(false);
+    const currentTotal = currentHand === 1 ? playerTotal : splitTotal;
+
+    if (isGameActive && currentTotal >= 21) {
+      //Handle Message and Payout
+      if(currentTotal === 21) {
+        setMessage('BLACKJACK');
+        setMoney(money + (2.5 * betAmount));
+      } else {
+        setMessage('BUST');
+      }
+
+      //Disable the buttons
+      setDisableButtons(true);
+      if(isSplit) {
+        setIsGameActive(false);
+      }
+      //Move to next hand / dealers turn if splitting
       setTimeout(() => {
-        resetGame();
-        if (money <= 0) {
-          setBetAmount(0);
-          setIsGameActive(false);
-          setIsBettingMode(false);
-          setIsDealerTurn(false);
-          setMessage('You\'re Bankrupt!'); // Handle game-over state
+        if (isSplit && currentHand === 1) {
+          // Move to second hand if split
+          setCurrentHand(2);
+          setMessage('Playing second hand');
+          setIsGameActive(true); // Resume game for second hand
+          setDisableButtons(false);
+        } else if(!isSplit) {
+          resetGame();
+        } else {
+          // Otherwise, end turn
+          setIsDealerTurn(true);
+          setMessage("Dealer's turn...");
         }
-      }, 2000);
-    } else if (playerTotal === 21) {
-      setMessage('BLACKJACK'); // Player wins with 21
-      setMoney((betAmount * 2.5) + money);
-      setIsGameActive(false);
-      setTimeout(() => {
-        resetGame();
-      }, 2000);
+      }, 2000
+);
     }
-  }, [playerTotal]);
+  }, [playerTotal, splitTotal, currentHand, isGameActive]);
 
   // Handle "Hit" button logic
   const handleHit = () => {
     const newDeck = [...deck];
-    const drawnCard = newDeck.pop(); // Draw a card
-    const updatedHand = [...playerHand, drawnCard];
+    const drawnCard = newDeck.pop();
     setDeck(newDeck);
-    setPlayerHand(updatedHand);
-    setPlayerTotal(calculateTotal(updatedHand)); // Update total with the new card
+
+    if (isSplit && currentHand === 2) {
+      // Update the split hand
+      const updatedSplitHand = [...splitHand, drawnCard];
+      setSplitHand(updatedSplitHand);
+      setSplitTotal(calculateTotal(updatedSplitHand));
+    } else {
+      // Update the main hand
+      const updatedHand = [...playerHand, drawnCard];
+      setPlayerHand(updatedHand);
+      setPlayerTotal(calculateTotal(updatedHand));
+    }
   };
 
   // Handle "Stand" button logic
   const handleStand = () => {
-    setMessage("Dealer's turn...");
-    setIsGameActive(false);
-    setIsDealerTurn(true); // Transition to dealer's turn
+    if (isSplit && currentHand === 1) {
+      // Move to the second hand if split
+      setCurrentHand(2);
+      setMessage('Playing second hand');
+    } else {
+      // End the player's turn and start the dealer's turn
+      setIsDealerTurn(true);
+      setMessage("Dealer's turn...");
+    }
   };
+
+  useEffect(() => {
+    if (!isBettingMode && playerHand.length === 2 && playerHand[0].rank === playerHand[1].rank && !isSplit) {
+      setMessage('Split?');
+      setShowSplitOptions(true); // Show the split options
+    }
+  }, [playerHand, isBettingMode]);
+
+  const handleSplit = () => {
+    if (playerHand.length === 2 && playerHand[0].rank === playerHand[1].rank) {
+
+      const firstCard = playerHand[0];
+      const secondCard = playerHand[1];
+      const newDeck = [...deck];
+
+      // Deal a new card to each hand
+      const newCardForFirstHand = newDeck.pop();
+      const newCardForSecondHand = newDeck.pop();
+
+      // Set up hands and bets
+      setPlayerHand([firstCard, newCardForFirstHand]);
+      setSplitHand([secondCard, newCardForSecondHand]);
+      setPlayerTotal(calculateTotal([firstCard, newCardForFirstHand]));
+      setSplitTotal(calculateTotal([secondCard, newCardForSecondHand]));
+      setSplitBet(betAmount); // Duplicate the bet for the split hand
+      setMoney(money - betAmount); // Deduct the split bet from the player's money
+      setDeck(newDeck);
+      setAllowedBusts(2);
+
+      // Update states
+      setIsSplit(true);
+      setCurrentHand(1); // Start with the first hand
+      setMessage('Playing first hand');
+      setShowSplitOptions(false); // Hide the split options
+    }
+  };
+
+  // Handle "No" response for splitting
+  const handleNoSplit = () => {
+    setMessage('');
+    setShowSplitOptions(false); // Revert the buttons
+  };
+
 
   // Handle changes to the bet input field
   const handleBetChange = (value) => {
@@ -139,9 +226,11 @@ const HomePage = () => {
       setMessage(`Invalid Bet Amount. Must be Between $1 and $${money}`);
       setTimeout(() => {
         setMessage('');
-      }, 2000);
+      }, 2000
+);
     }
   };
+
 
   // Manage dealer's turn logic
   useEffect(() => {
@@ -167,19 +256,56 @@ const HomePage = () => {
 
   // Determine the winner based on totals
   const determineWinner = () => {
-    if (dealerTotal > 21 || playerTotal > dealerTotal) {
-      setMessage('Player Wins');
-      setMoney((betAmount * 2) + money); // Return double the bet in a win
-    } else if (playerTotal < dealerTotal) {
-      setMessage('Dealer Wins'); // Return nothing in a loss
+    const results = [];
+
+    // Evaluate the main hand
+    if(!isSplit) {
+      if (playerTotal > 21) {
+        results.push('Bust');
+      } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
+        results.push('Win');
+        setMoney((betAmount * 2) + money);
+      } else if (playerTotal < dealerTotal) {
+        results.push('Lose');
+      } else {
+        results.push('Tie');
+        setMoney(betAmount + money);
+      }
     } else {
-      setMessage('Tie');
-      setMoney(betAmount + money); // Return bet in a tie
+      if (playerTotal === 21) {
+        results.push('Main hand: Blackjack');
+      } else if (playerTotal > 21) {
+        results.push('Main hand: Bust');
+      } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
+        results.push('Main hand: Win');
+        setMoney((betAmount * 2) + money);
+      } else if (playerTotal < dealerTotal) {
+        results.push('Main hand: Lose');
+      } else {
+        results.push('Main hand: Tie');
+        setMoney(betAmount + money);
+      }
+      if (splitTotal === 21) {
+        results.push('Split hand: BlackJack');
+      } else if (splitTotal > 21) {
+        results.push('Split hand: Bust');
+      } else if (dealerTotal > 21 || splitTotal > dealerTotal) {
+        results.push('Split hand: Win');
+        setMoney((splitBet * 2) + money);
+      } else if (splitTotal < dealerTotal) {
+        results.push('Split hand: Lose');
+      } else {
+        results.push('Split hand: Tie');
+        setMoney(splitBet + money);
+      }
     }
+    setMessage(results.join('\n'));
     setTimeout(() => {
       resetGame();
-    }, 2000);
+    }, 2000
+);
   };
+
 
   return (
     <View style={styles.container}>
@@ -188,28 +314,54 @@ const HomePage = () => {
         {dealerHand.map((card, index) => (
           <Card
             key={index}
-            rank={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn) ? card.rank : ''}
-            suit={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn) ? card.suit : ''}
+            rank={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn || disableButtons) ? card.rank : ''}
+            suit={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn || disableButtons) ? card.suit : ''}
           />
         ))}
       </View>
       {/* Player's Hand */}
       <View style={styles.playerHandContainer}>
-        {playerHand.map((card, index) => (
-          <Card
-            key={index}
-            rank={ !isBettingMode && (isGameActive || isDealerTurn) ? card.rank : ''}
-            suit={ !isBettingMode && (isGameActive || isDealerTurn) ? card.suit : ''}
-          />
-        ))}
+        {isSplit ? (
+          <>
+            {/* Display the current hand being played */}
+            {(currentHand === 1 ? playerHand : splitHand).map((card, index) => (
+              <Card
+                key={index}
+                rank={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
+                suit={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
+              />
+            ))}
+          </>
+        ) : (
+          playerHand.map((card, index) => (
+            <Card
+              key={index}
+              rank={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
+              suit={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
+            />
+          ))
+        )}
       </View>
       {/* Buttons */}
-      <Pressable onPress={handleHit} style={[styles.hitButton, !isGameActive && styles.disabledButton]} disabled={!isGameActive}>
-        <Text style={styles.buttonText}>Hit</Text>
-      </Pressable>
-      <Pressable onPress={handleStand} style={[styles.standButton, !isGameActive && styles.disabledButton]} disabled={!isGameActive}>
-        <Text style={styles.buttonText}>Stand</Text>
-      </Pressable>
+      {showSplitOptions ? (
+        <>
+          <Pressable onPress={handleSplit} style={styles.splitConfirm}>
+            <Text style={styles.buttonText}>Yes</Text>
+          </Pressable>
+          <Pressable onPress={handleNoSplit} style={styles.splitDeny}>
+            <Text style={styles.buttonText}>No</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Pressable onPress={handleHit} style={[styles.hitButton, (!isGameActive || disableButtons) && styles.disabledButton]} disabled={!isGameActive || disableButtons}>
+            <Text style={styles.buttonText}>Hit</Text>
+          </Pressable>
+          <Pressable onPress={handleStand} style={[styles.standButton, (!isGameActive || disableButtons) && styles.disabledButton]} disabled={!isGameActive || disableButtons}>
+            <Text style={styles.buttonText}>Stand</Text>
+          </Pressable>
+        </>
+      )}
       <View style={styles.betContainer}>
         <Text style={styles.moneyText}>Money: ${money}</Text>
         <TextInput
@@ -229,7 +381,13 @@ const HomePage = () => {
       </View>
 
       {/*Scores*/}
-      <Text style={styles.playerScore}>{!isBettingMode && (money > 0 || betAmount > 0)? playerTotal : '???'}</Text>
+      <Text style={styles.playerScore}>
+        {!isBettingMode && (money > 0 || betAmount > 0)
+          ? currentHand === 1
+            ? playerTotal
+            : splitTotal
+          : '???'}
+      </Text>
       <Text style={styles.dealerScore}>{isDealerTurn ? dealerTotal : '???'}</Text>
 
       {/*Message*/}
@@ -319,7 +477,7 @@ const styles = StyleSheet.create({
   // Display Message
   message: {
     position: 'absolute',
-    top: 375,
+    top: 325,
     fontSize: 32,
     fontWeight: 'bold',
     color: 'blue',
@@ -356,5 +514,33 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: 'grey',
     borderRadius: 8,
+  },
+  splitConfirm: {
+    position: 'absolute',
+    bottom: 75,
+    left: 20,
+    padding: 15,
+    borderWidth: 2,
+    borderColor: 'black',
+    borderRadius: 8,
+    width: 200,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'yellow',
+  },
+  splitDeny: {
+    position: 'absolute',
+    bottom: 75,
+    right: 20,
+    padding: 15,
+    borderWidth: 2,
+    borderColor: 'black',
+    borderRadius: 8,
+    width: 200,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'yellow',
   },
 });
