@@ -125,7 +125,8 @@ const HomePage = () => {
           setIsDealerTurn(true);
           setMessage("Dealer's turn...");
         }
-      }, 2000
+      }, 2500
+
 );
     }
   }, [playerTotal, splitTotal, currentHand, isGameActive]);
@@ -225,7 +226,8 @@ const HomePage = () => {
       setMessage(`Invalid Bet Amount. Must be Between $1 and $${money}`);
       setTimeout(() => {
         setMessage('');
-      }, 2000
+      }, 2500
+
 );
     }
   };
@@ -302,11 +304,10 @@ const HomePage = () => {
     setMessage(results.join('\n'));
     setTimeout(() => {
       resetGame();
-    }, 2000
+    }, 2500
+
 );
   };
-
-
   return (
     <View style={styles.container}>
       {/* Dealer's Hand */}
@@ -314,11 +315,12 @@ const HomePage = () => {
         {dealerHand.map((card, index) => (
           <Card
             key={index}
-            rank={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn || disableButtons) ? card.rank : ''}
-            suit={ (isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn || disableButtons) ? card.suit : ''}
+            rank={(isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn || disableButtons) ? card.rank : ''}
+            suit={(isDealerTurn || index === 0) && !isBettingMode && (isGameActive || isDealerTurn || disableButtons) ? card.suit : ''}
           />
         ))}
       </View>
+
       {/* Player's Hand */}
       <View style={styles.playerHandContainer}>
         {isSplit ? (
@@ -327,8 +329,8 @@ const HomePage = () => {
             {(currentHand === 1 ? playerHand : splitHand).map((card, index) => (
               <Card
                 key={index}
-                rank={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
-                suit={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
+                rank={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
+                suit={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
               />
             ))}
           </>
@@ -336,12 +338,13 @@ const HomePage = () => {
           playerHand.map((card, index) => (
             <Card
               key={index}
-              rank={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
-              suit={ !isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
+              rank={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
+              suit={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
             />
           ))
         )}
       </View>
+
       {/* Buttons */}
       {showSplitOptions ? (
         <>
@@ -354,14 +357,24 @@ const HomePage = () => {
         </>
       ) : (
         <>
-          <Pressable onPress={handleHit} style={[styles.hitButton, (!isGameActive || disableButtons) && styles.disabledButton]} disabled={!isGameActive || disableButtons}>
+          <Pressable
+            onPress={handleHit}
+            style={[styles.hitButton, (!isGameActive || disableButtons) && styles.disabledButton]}
+            disabled={!isGameActive || disableButtons}
+          >
             <Text style={styles.buttonText}>Hit</Text>
           </Pressable>
-          <Pressable onPress={handleStand} style={[styles.standButton, (!isGameActive || disableButtons) && styles.disabledButton]} disabled={!isGameActive || disableButtons}>
+          <Pressable
+            onPress={handleStand}
+            style={[styles.standButton, (!isGameActive || disableButtons) && styles.disabledButton]}
+            disabled={!isGameActive || disableButtons}
+          >
             <Text style={styles.buttonText}>Stand</Text>
           </Pressable>
         </>
       )}
+
+      {/* Bet Container */}
       <View style={styles.betContainer}>
         <Text style={styles.moneyText}>Money: ${money}</Text>
         <TextInput
@@ -373,24 +386,24 @@ const HomePage = () => {
         />
         <Pressable
           onPress={handleBetSubmit}
-          style={[styles.betButton, !isBettingMode && styles.disabledBet]} // Apply disabled style to the button if not in betting mode
-          disabled={!isBettingMode} // Disable the button if not in betting mode
+          style={[styles.betButton, !isBettingMode && styles.disabledBet]}
+          disabled={!isBettingMode}
         >
           <Text style={styles.buttonText}>Place Bet</Text>
         </Pressable>
       </View>
 
-      {/*Scores*/}
+      {/* Scores */}
       <Text style={styles.playerScore}>
         {!isBettingMode && (money > 0 || betAmount > 0)
           ? currentHand === 1
             ? playerTotal
             : splitTotal
-          : '???'}
+          : <Text>???</Text>}
       </Text>
-      <Text style={styles.dealerScore}>{isDealerTurn ? dealerTotal : '???'}</Text>
+      <Text style={styles.dealerScore}>{isDealerTurn ? dealerTotal : <Text>???</Text>}</Text>
 
-      {/*Message*/}
+      {/* Message */}
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
