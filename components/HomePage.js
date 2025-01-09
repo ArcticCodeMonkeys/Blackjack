@@ -8,6 +8,9 @@ const initializeDeck = () => {
   const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']; // Card ranks
   const deck = [];
   suits.forEach(suit => ranks.forEach(rank => deck.push({ rank, suit }))); // Create a card for every suit and rank combination
+  //for (let i = 0; i < 52; i++) {
+    //deck.push({ rank: 'A', suit: 'Hearts' });
+  //}
   return deck;
 };
 
@@ -66,7 +69,7 @@ const HomePage = () => {
     if(!ask) {
       const newDeck = initializeDeck(); // Create a new deck
       shuffleDeck(newDeck); // Shuffle the deck
-      //const drawnCard = drawCard();
+      const drawnCard = drawCard();
       const playerCards = [drawCard(), drawCard()]; // Deal two cards to the player
       const dealerCards = [drawCard(), drawCard()]; // Deal two cards to the dealer
       setDeck(newDeck);
@@ -186,7 +189,8 @@ const HomePage = () => {
       }, 1500)
       return newDeck.pop();
     }
-    return deck.pop()
+    //return {rank : 'A', suit: 'Spades'};
+    return deck.pop();
   }
 
   const handleSplit = () => {
@@ -238,6 +242,7 @@ const HomePage = () => {
       setMoney(money - betAmount); // Deduct bet amount from player's money
       setIsBettingMode(false); // Exit betting mode
       setIsGameActive(true); // Start the game
+      setMessage('Your turn');
     } else {
       setMessage(`Invalid Bet Amount. Must be Between $1 and $${money}`);
       setTimeout(() => {
@@ -289,6 +294,7 @@ const HomePage = () => {
     } else {
       if (playerTotal === 21) {
         results.push('Main hand: Blackjack');
+        setMoney((betAmount * 2.5) + money);
       } else if (playerTotal > 21) {
         results.push('Main hand: Bust');
       } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
@@ -303,6 +309,7 @@ const HomePage = () => {
       // Evaluate the split hand
       if (splitTotal === 21) {
         results.push('Split hand: BlackJack');
+        setMoney((betAmount * 2.5) + money);
       } else if (splitTotal > 21) {
         results.push('Split hand: Bust');
       } else if (dealerTotal > 21 || splitTotal > dealerTotal) {
@@ -397,6 +404,7 @@ const HomePage = () => {
       <View style={styles.betContainer}>
         <Text testID={"player-money"} style={styles.moneyText}>Money: ${money}</Text>
         <TextInput
+          testID={"bet-input"}
           style={[styles.betInput, !isBettingMode]}
           keyboardType="numeric"
           placeholder="Enter Bet Amount"
@@ -429,7 +437,7 @@ const HomePage = () => {
       </Text>
 
       {/* Message */}
-      {message && <Text style={styles.message}>{message}</Text>}
+      {message && <Text testID={"message"} style={styles.message}>{message}</Text>}
     </View>
   );
 };
