@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pressable, StyleSheet, Text, View, TextInput } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, TextInput } from "react-native";
 import Card from './Card'; // Custom Card component for rendering playing cards
 
 // Function to initialize a new deck of cards
@@ -66,6 +66,7 @@ const HomePage = () => {
     if(!ask) {
       const newDeck = initializeDeck(); // Create a new deck
       shuffleDeck(newDeck); // Shuffle the deck
+      //const drawnCard = drawCard();
       const playerCards = [drawCard(), drawCard()]; // Deal two cards to the player
       const dealerCards = [drawCard(), drawCard()]; // Deal two cards to the dealer
       setDeck(newDeck);
@@ -334,12 +335,13 @@ const HomePage = () => {
         ))}
       </View>
       {/* Player's Hand */}
-      <View style={styles.playerHandContainer}>
+      <View testID={"player-hand-container"} style={styles.playerHandContainer}>
         {isSplit ? (
           <>
             {/* Display the current hand being played */}
             {(currentHand === 1 ? playerHand : splitHand).map((card, index) => (
               <Card
+                testID={`player-card-${index}`}
                 key={index}
                 rank={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
                 suit={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
@@ -349,6 +351,7 @@ const HomePage = () => {
         ) : (
           playerHand.map((card, index) => (
             <Card
+              testID={`player-card-${index}`}
               key={index}
               rank={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.rank : ''}
               suit={!isBettingMode && (isGameActive || isDealerTurn || isSplit) ? card.suit : ''}
@@ -359,16 +362,17 @@ const HomePage = () => {
       {/* Buttons */}
       {showSplitOptions ? (
         <>
-          <Pressable onPress={handleSplit} style={styles.splitConfirm}>
+          <Pressable testID={"yes-button"} onPress={handleSplit} style={styles.splitConfirm}>
             <Text style={styles.buttonText}>Yes</Text>
           </Pressable>
-          <Pressable onPress={handleNoSplit} style={styles.splitDeny}>
+          <Pressable testID={"no-button"} onPress={handleNoSplit} style={styles.splitDeny}>
             <Text style={styles.buttonText}>No</Text>
           </Pressable>
         </>
       ) : (
         <>
           <Pressable
+            testID={"hit-button"}
             onPress={handleHit}
             style={[styles.hitButton, (!isGameActive || disableButtons) && styles.disabledButton]}
             disabled={!isGameActive || disableButtons}
@@ -376,6 +380,7 @@ const HomePage = () => {
             <Text style={styles.buttonText}>Hit</Text>
           </Pressable>
           <Pressable
+            testID={"stand-button"}
             onPress={handleStand}
             style={[styles.standButton, (!isGameActive || disableButtons) && styles.disabledButton]}
             disabled={!isGameActive || disableButtons}
@@ -390,7 +395,7 @@ const HomePage = () => {
       </Pressable>) : (<View></View>)}
       {/* Bet Container */}
       <View style={styles.betContainer}>
-        <Text style={styles.moneyText}>Money: ${money}</Text>
+        <Text testID={"player-money"} style={styles.moneyText}>Money: ${money}</Text>
         <TextInput
           style={[styles.betInput, !isBettingMode]}
           keyboardType="numeric"
@@ -399,6 +404,7 @@ const HomePage = () => {
           value={betAmount || ''}
         />
         <Pressable
+          testID={"bet-button"}
           onPress={handleBetSubmit}
           style={[styles.betButton, !isBettingMode && styles.disabledBet]}
           disabled={!isBettingMode}
@@ -407,7 +413,9 @@ const HomePage = () => {
         </Pressable>
       </View>
       {/* Scores */}
-      <Text style={styles.playerScore}>
+      <Text
+        testID={"player-score"}
+        style={styles.playerScore}>
         Player Score:{' '}
         {!isBettingMode && (money > 0 || betAmount > 0)
           ? currentHand === 1
@@ -415,7 +423,6 @@ const HomePage = () => {
             : splitTotal
           : <Text>???</Text>}
       </Text>
-
       <Text style={styles.dealerScore}>
         Dealer Score:{' '}
         {isDealerTurn ? dealerTotal : <Text>???</Text>}
